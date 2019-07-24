@@ -6,7 +6,7 @@ eks-deploy consists of a framework of scripts that helps gitops workflow with do
 If you have an app that you need to setup in k8s you need to create a deploy folder in your app code,
 
 Example of folder layout:
-```
+```plaintext
 app-code/
 	|
 	|---- deploy/
@@ -25,6 +25,3 @@ app-code/
 	|---- Dockerfile
 	|---- .travis.yml
 ```
-
-
-
