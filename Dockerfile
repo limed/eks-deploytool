@@ -2,7 +2,7 @@ FROM alpine:latest
 
 ENV KUBE_VERSION="v1.15.1"
 
-RUN	apk add --update --no-cache \
+RUN apk add --update --no-cache \
 	ca-certificates \
 	py-pip \
 	jq \
