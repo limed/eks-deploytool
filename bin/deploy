@@ -1,0 +1,64 @@
+#!/bin/bash
+
+set -eo pipefail
+set -x
+
+MY_DIR="$(dirname $0)"
+. "${MY_DIR}/utils.sh"
+
+ENVIRONMENT="${1}"
+
+if [ -z "${ENVIRONMENT}" ]; then
+    echo "Deploys k8s manifest"
+    echo "Usage: $0 <environment: stage|prod>"
+    exit 1
+fi
+
+ENVIRONMENT_FOLDER="${DEPLOY_FOLDER}/${ENVIRONMENT}"
+ENVIRONMENT_FILE="${DEPLOY_FOLDER}/${ENVIRONMENT}.yaml"
+ENVIRONMENT_CONFIG="${ENVIRONMENT_FOLDER}/env.sh"
+
+if [ ! -f "${ENVIRONMENT_FILE}" ]; then die "${ENVIRONMENT_FILE} file does not exists"; fi
+if [ ! -d "${ENVIRONMENT_FOLDER}" ]; then die "${ENVIRONMENT_FOLDER} folder does not exists"; fi
+if [ ! -f "${ENVIRONMENT_CONFIG}" ]; then die "${ENVIRONMENT_CONFIG} config file does not exists"; fi
+
+
+K8S_CLUSTER=$(get_cluster_name ${ENVIRONMENT_FILE}) || die "K8S_CLUSTER is not set"
+NAMESPACE=$(get_namespace ${ENVIRONMENT_FILE}) || die "NAMESPACE is not set"
+
+get_all_pods() {
+    kubectl --kubeconfig "/${K8S_CLUSTER}.config" get pods --all-namespaces
+}
+
+get_pods() {
+    local namespace=$1
+    if [ -z "${namespace}" ]; then die "Usage: ${FUNCNAME} <namespace>"; fi
+    kubectl --kubeconfig "/${K8S_CLUSTER}.config" --get pods --namespace "${namespace}"
+}
+
+deploy() {
+    local deployment_type=$1
+    if [ -z "${deployment_type}" ]; then die "Usage: ${FUNCNAME} <deployment type: configmap|deployment|etc>"; fi
+
+    TYPE=($(get_array "${ENVIRONMENT_FILE}" "${deployment_type}")) || print_ok "No ${deployment_type} in ${ENVIRONMENT_FILE}, continuing" && return
+    echo "Deploying ${deployment_type}"
+    for index in "${!TYPE[@]}"; do
+        TYPE_FILE="${ENVIRONMENT_FOLDER}/${TYPE[$index]}"
+        echo "${TYPE_FILE}"
+        #j2 "${TYPE_FILE} | kubectl apply --kubeconfig "/${K8S_CLUSTER}.config" -n "${NAMESPACE}" --record -f -
+    done
+    echo "Done deploying ${deployment_type}"
+    echo ""
+}
+
+main() {
+    deploy "configmaps"
+    deploy "deployments"
+}
+
+source "${ENVIRONMENT_CONFIG}"
+
+echo "Getting kubeconfig"
+get_kubeconfig "${K8S_CLUSTER}" || die "Error getting kubeconfig"
+
+main
