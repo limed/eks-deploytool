@@ -10,18 +10,18 @@ Example of folder layout:
 app-code/
 	|
 	|---- deploy/
-	|	  |---- metadata.yaml  
-	|	  |---- stage.yaml
-	|	  |---- prod.yaml
-	|	  |---- stage/
-	|	  |		 |---- env.sh
-	|	  |		 |---- k8s_manifest1.yaml
-	|	  |		 |---- k8s_manifest2.yaml
-	|	  |----- prod/
-	|	  |		  |---- env.sh
-	|	  |		  |---- k8s_manifest1.yaml
-	|	  |		  |---- k8s_manifest2.yaml
-    |---- app.py
+	|	|---- metadata.yaml  
+	|	|---- stage.yaml
+	|	|---- prod.yaml
+	|	|---- stage/
+	|	|	|---- env.sh
+	|	|	|---- k8s_manifest1.yaml
+	|	|	|---- k8s_manifest2.yaml
+	|	|----- prod/
+	|		|---- env.sh
+	|		|---- k8s_manifest1.yaml
+	|		|---- k8s_manifest2.yaml
+	|---- app.py
 	|---- Dockerfile
 	|---- .travis.yml
 ```
