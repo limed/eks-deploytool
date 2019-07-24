@@ -1,0 +1,6 @@
+---
+project_name: test_project1
+account_name: itsre-sandbox
+
+environments:
+  - stage

@@ -1,0 +1,6 @@
+---
+k8s_cluster: cluster1
+namespace: stage
+
+deployments:
+  - deployment1.yaml
