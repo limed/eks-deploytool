@@ -26,11 +26,11 @@ die() {
 }
 
 get_kubeconfig() {
-    local cluster_name="$1"
-    local aws_region="${AWS_REGION:-us-west-2}"
+    local cluster_name="${1}"
+    local aws_region="${2:-us-west-2}"
 
     # shellcheck disable=SC2128
-    if [ -z "${cluster_name}" ]; then die "Usage: ${FUNCNAME} <cluster name>"; fi
+    if [ -z "${cluster_name}" ] || [ -z "${aws_region}" ]; then die "Usage: ${FUNCNAME} <cluster name> <aws_region>"; fi
     aws eks update-kubeconfig --region "${aws_region}" --name "${cluster_name}" --alias "${cluster_name}" --kubeconfig "/${cluster_name}.config"
     rv=$?
 
