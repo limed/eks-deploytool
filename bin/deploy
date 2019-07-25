@@ -14,19 +14,14 @@ ENVIRONMENT_CONFIG="${ENVIRONMENT_FOLDER}/env.sh"
 
 IMAGE_NAME="${2}"
 
-if [ -z "${ENVIRONMENT}" ]; then
-    echo -en "\n$0  -   k8s deployment helper script, helps deploys\n"
-    echo -en "          k8s files using a standard framework.\n\n"
-    echo -en "Usage: $0 <environment: stage|prod> <image name>\n"
+if [ -z "${ENVIRONMENT}" ] || [ -z "${IMAGE_NAME}" ]; then
+    echo -en "deploy - k8s deployment helper script, this will deploy k8s files using a standard framework.\n\n"
+    echo -en "Usage: ./deploy <environment: stage|prod> <image name>\n"
     exit 1
 fi
 
 if [ -z "${AWS_ACCESS_KEY_ID}" ] || [ -z "${AWS_SECRET_ACCESS_KEY}" ] || [ -z "${AWS_SESSION_TOKEN}" ] || [ -z "${AWS_SECURITY_TOKEN}" ]; then
     die "[ERROR]: Missing AWS_ACCESS_KEY_ID or AWS_SECRET_ACCESS_KEY"
-fi
-
-if [ -z "${APP_IMAGE}" ]; then
-    die "[ERROR]: APP_IMAGE variable is not set"
 fi
 
 if [ ! -d "${ENVIRONMENT_FOLDER}" ]; then die "${ENVIRONMENT_FOLDER} folder does not exists"; fi
