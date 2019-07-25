@@ -2,6 +2,8 @@
 
 set -eo pipefail
 
+[[ "${TRACE}" ]] && set -x
+
 CHECKMARK="\xE2\x9C\x94"
 SKULL="\xE2\x98\xA0"
 XMARK="\xE2\x9D\x8C"
