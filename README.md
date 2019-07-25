@@ -9,7 +9,7 @@ Example of folder layout:
 ```plaintext
 app-code/
 ├── deploy/
-│	├── meatadata.yaml
+│   ├── meatadata.yaml
 │   ├── stage.yaml
 │   ├── prod.yaml
 │   ├── stage/
