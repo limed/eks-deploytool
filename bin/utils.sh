@@ -12,12 +12,12 @@ METADATA_FILE="${DEPLOY_FOLDER}/metadata.yaml"
 
 print_ok() {
     local msg=$1
-    echo -e "${CHECKMARK}  ${msg}"
+    echo -ne "${CHECKMARK}  ${msg}\n"
 }
 
 print_fail() {
     local msg=$1
-    echo -e "${SKULL}  ${msg}"
+    echo -ne "${SKULL}  ${msg}\n\n"
 }
 
 die() {
@@ -65,7 +65,7 @@ get_namespace(){
     fi
 }
 
-get_array() {
+get_attribute() {
     local environment_file=$1
     local array_key=$2
 
@@ -78,9 +78,7 @@ get_array() {
 
     output_array=$(yq . "${environment_file}" | jq -e -c -r ".${array_key}[]?")
     rv=$?
-    if [ -z "${output_array}" ] || [ "${rv}" -ne 0 ]; then
-        return "${rv}"
-    else
+    if [ ! -z "${output_array}" ] || [ "${rv}" -eq 0 ]; then
         echo "${output_array}"
     fi
 }

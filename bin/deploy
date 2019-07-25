@@ -1,45 +1,63 @@
 #!/bin/bash
 
 set -eo pipefail
+#set -x
 
 MY_DIR="$(dirname "$0")"
 # shellcheck source=utils.sh
 . "${MY_DIR}/utils.sh"
 
 ENVIRONMENT="${1}"
-
-if [ -z "${ENVIRONMENT}" ]; then
-    echo "Deploys k8s manifest"
-    echo "Usage: $0 <environment: stage|prod>"
-    exit 1
-fi
-
 ENVIRONMENT_FOLDER="${DEPLOY_FOLDER}/${ENVIRONMENT}"
 ENVIRONMENT_FILE="${DEPLOY_FOLDER}/${ENVIRONMENT}.yaml"
 ENVIRONMENT_CONFIG="${ENVIRONMENT_FOLDER}/env.sh"
 
-if [ ! -f "${ENVIRONMENT_FILE}" ]; then die "${ENVIRONMENT_FILE} file does not exists"; fi
+IMAGE_NAME="${2}"
+
+if [ -z "${ENVIRONMENT}" ]; then
+    echo -en "\n$0  -   k8s deployment helper script, helps deploys\n"
+    echo -en "          k8s files using a standard framework.\n\n"
+    echo -en "Usage: $0 <environment: stage|prod> <image name>\n"
+    exit 1
+fi
+
+if [ -z "${AWS_ACCESS_KEY_ID}" ] || [ -z "${AWS_SECRET_ACCESS_KEY}" ] || [ -z "${AWS_SESSION_TOKEN}" ] || [ -z "${AWS_SECURITY_TOKEN}" ]; then
+    die "[ERROR]: Missing AWS_ACCESS_KEY_ID or AWS_SECRET_ACCESS_KEY"
+fi
+
+if [ -z "${APP_IMAGE}" ]; then
+    die "[ERROR]: APP_IMAGE variable is not set"
+fi
+
 if [ ! -d "${ENVIRONMENT_FOLDER}" ]; then die "${ENVIRONMENT_FOLDER} folder does not exists"; fi
+if [ ! -f "${ENVIRONMENT_FILE}" ]; then die "${ENVIRONMENT_FILE} file does not exists"; fi
 if [ ! -f "${ENVIRONMENT_CONFIG}" ]; then die "${ENVIRONMENT_CONFIG} config file does not exists"; fi
 
-K8S_CLUSTER=$(get_cluster_name "${ENVIRONMENT_FILE}") || die "K8S_CLUSTER is not set"
-NAMESPACE=$(get_namespace "${ENVIRONMENT_FILE}") || die "NAMESPACE is not set"
-AWS_REGION=$(yq . "${ENVIRONMENT_FILE}" | jq -e -r .aws_region) || die "AWS_REGION is not set"
+K8S_CLUSTER=$(get_cluster_name "${ENVIRONMENT_FILE}") || die "[ERROR]: K8S_CLUSTER is not set"
+NAMESPACE=$(get_namespace "${ENVIRONMENT_FILE}") || die "[ERROR]: NAMESPACE is not set"
+AWS_REGION=$(yq . "${ENVIRONMENT_FILE}" | jq -e -r .aws_region) || die "[ERROR]: AWS_REGION is not set"
+
+# Metadata related
+PROJECT_NAME=$(yq . "${METADATA_FILE}" | jq -e -r .project_name) || die "[ERROR]: project_name is not set in metadata file"
+ACCOUNT_NAME=$(yq . "${METADATA_FILE}" | jq -e -r .account_name) || die "[ERROR]: account_name is not set in metadata file"
 
 deploy() {
     local deployment_type=$1
     # shellcheck disable=SC2128
     if [ -z "${deployment_type}" ]; then die "Usage: ${FUNCNAME} <deployment type: configmap|deployment|etc>"; fi
 
-    TYPE=("$(get_array "${ENVIRONMENT_FILE}" "${deployment_type}")") || print_ok "No ${deployment_type} in ${ENVIRONMENT_FILE}, skipping" && return
-    echo "Deploying ${deployment_type}"
-    for index in "${!TYPE[@]}"; do
-        TYPE_FILE="${ENVIRONMENT_FOLDER}/${TYPE[$index]}"
-        echo "${TYPE_FILE}"
-        #j2 "${TYPE_FILE} | kubectl apply --kubeconfig "/${K8S_CLUSTER}.config" -n "${NAMESPACE}" --record -f -
-    done
-    echo "Done deploying ${deployment_type}"
-    echo ""
+    TYPE=($(get_attribute "${ENVIRONMENT_FILE}" "${deployment_type}"))
+    if [ -n "${TYPE}" ]; then
+        print_ok "Deploying ${deployment_type}"
+        for index in "${!TYPE[@]}"; do
+            TYPE_FILE="${ENVIRONMENT_FOLDER}/${TYPE[$index]}"
+            echo "${TYPE_FILE}"
+            #j2 "${TYPE_FILE} | kubectl apply --kubeconfig "/${K8S_CLUSTER}.config" -n "${NAMESPACE}" --record -f -
+            j2 "${TYPE_FILE}"
+        done
+        print_ok "Done deploying ${deployment_type}"
+        echo ""
+    fi
 }
 
 main() {
@@ -58,11 +76,18 @@ main() {
 
 source "${ENVIRONMENT_CONFIG}"
 
-echo "Getting kubeconfig"
-get_kubeconfig "${K8S_CLUSTER}" "${AWS_REGION}" || die "Error getting kubeconfig"
+export PROJECT_NAME
+export ACCOUNT_NAME
+export ENVIRONMENT
+export IMAGE_NAME
 
-echo "Deploying namespace"
+print_ok "Getting kubeconfig"
+get_kubeconfig "${K8S_CLUSTER}" "${AWS_REGION}" || die "[ERROR]: Error getting kubeconfig"
+echo ""
+
+print_ok "Deploying namespace"
 kubectl --kubeconfig "/${K8S_CLUSTER}.config" get ns "${NAMESPACE}" > /dev/null 2>&1 || kubectl --kubeconfig "/${K8S_CLUSTER}.config" create ns "${NAMESPACE}"
-echo "Done deploying namespace"
+print_ok "Done deploying namespace"
+echo ""
 
 main
