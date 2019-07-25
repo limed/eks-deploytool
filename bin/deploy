@@ -2,7 +2,7 @@
 
 set -eo pipefail
 
-[[ "${TRACE}" ]] && set -x
+[ "${TRACE}" ] && set -x
 
 MY_DIR="$(dirname "$0")"
 # shellcheck source=utils.sh
@@ -48,8 +48,7 @@ deploy() {
         for index in "${!TYPE[@]}"; do
             TYPE_FILE="${ENVIRONMENT_FOLDER}/${TYPE[$index]}"
             echo "${TYPE_FILE}"
-            #j2 "${TYPE_FILE} | kubectl apply --kubeconfig "/${K8S_CLUSTER}.config" -n "${NAMESPACE}" --record -f -
-            j2 "${TYPE_FILE}"
+            j2 "${TYPE_FILE}" | kubectl apply --kubeconfig "/${K8S_CLUSTER}.config" -n "${NAMESPACE}" --record -f -
         done
         print_ok "Done deploying ${deployment_type}"
         echo ""
@@ -70,6 +69,7 @@ main() {
     deploy "deployments"
 }
 
+# shellcheck source=/dev/null
 source "${ENVIRONMENT_CONFIG}"
 
 export PROJECT_NAME
@@ -77,13 +77,18 @@ export ACCOUNT_NAME
 export ENVIRONMENT
 export IMAGE_NAME
 
-print_ok "Getting kubeconfig"
-get_kubeconfig "${K8S_CLUSTER}" "${AWS_REGION}" || die "[ERROR]: Error getting kubeconfig"
-echo ""
+# Only doit if doit flag is set
+if [ "${DOIT}" ]; then
+    print_ok "Getting kubeconfig"
+    get_kubeconfig "${K8S_CLUSTER}" "${AWS_REGION}" || die "[ERROR]: Error getting kubeconfig"
+    echo ""
 
-print_ok "Deploying namespace"
-kubectl --kubeconfig "/${K8S_CLUSTER}.config" get ns "${NAMESPACE}" > /dev/null 2>&1 || kubectl --kubeconfig "/${K8S_CLUSTER}.config" create ns "${NAMESPACE}"
-print_ok "Done deploying namespace"
-echo ""
+    print_ok "Deploying namespace"
+    kubectl --kubeconfig "/${K8S_CLUSTER}.config" get ns "${NAMESPACE}" > /dev/null 2>&1 || kubectl --kubeconfig "/${K8S_CLUSTER}.config" create ns "${NAMESPACE}"
+    print_ok "Done deploying namespace"
+    echo ""
 
-main
+    main
+else
+    echo "DOIT flag is not set"
+fi
